@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Melodex UI Redesign</title>
+    <!-- Phosphor Icons -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <!-- Main Style -->
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div class="app-container">
+        <!-- ── Top Hero Area ── -->
+        <section class="hero-section glass">
+            <h1 class="brand-title">
+                <i class="ph-fill ph-play-circle"></i>
+                Melodex
+            </h1>
+            <p class="brand-subtitle">The ultimate audio & video downloader</p>
+            
+            <div class="input-wrapper">
+                <input type="text" id="urlInput" placeholder="Paste YouTube link here..." autocomplete="off">
+                <button id="addBtn" class="btn btn-primary" style="padding: 6px 20px; font-size:0.9rem">
+                    <i class="ph ph-plus"></i> Add
+                </button>
+            </div>
+            
+            <div class="hero-options">
+                <label>
+                    <input type="checkbox" id="embedThumb" checked>
+                    Embed Thumbnail
+                </label>
+            </div>
+        </section>
+
+        <!-- ── Main Grid ── -->
+        <main class="main-content">
+            <!-- Left: Queue Panel -->
+            <section class="panel glass">
+                <div class="panel-header">
+                    <h3><i class="ph ph-list-dashes"></i> Download Queue (<span id="queueCount">0</span>)</h3>
+                    <button class="btn btn-secondary btn-icon" id="clearDoneBtn" title="Clear Finished">
+                        <i class="ph ph-broom"></i>
+                    </button>
+                </div>
+                <div class="panel-body">
+                    <div id="queueList" class="q-list">
+                        <!-- Items injected here by JS -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- Right: Session & Logs -->
+            <div style="display: flex; flex-direction: column; gap: 20px; min-height: 0;">
+                <!-- Active Session -->
+                <section class="panel glass session-card" style="flex: none">
+                    <h4><i class="ph ph-activity"></i> <span id="sessionCounter"></span></h4>
+                    <div id="currentTitle" class="truncate" style="color:var(--text-main); font-weight:500">Waiting...</div>
+                    <div class="progress-bg">
+                        <div id="mainProgressBar" class="progress-fill" style="width: 0%"></div>
+                    </div>
+                    <div class="session-controls">
+                        <button id="pauseBtn" class="btn btn-secondary" disabled>
+                            <i class="ph ph-pause"></i> Pause
+                        </button>
+                        <button id="cancelBtn" class="btn btn-secondary" style="color: var(--error); border-color: rgba(239, 68, 68, 0.3);" disabled>
+                            <i class="ph ph-stop-circle"></i> Cancel
+                        </button>
+                    </div>
+                </section>
+
+                <!-- Activity Log -->
+                <section class="panel glass log-panel" style="flex: 1">
+                    <div class="panel-header">
+                        <h3 style="font-size:1rem"><i class="ph ph-terminal-window"></i> Activity Log</h3>
+                    </div>
+                    <div id="logBox" class="log-box" style="border-radius: 0 0 var(--radius-lg) var(--radius-lg);"></div>
+                </section>
+            </div>
+        </main>
+    </div>
+
+    <!-- ── Playlist / Download Modal ── -->
+    <div id="playlistModal" class="modal-overlay">
+        <div class="modal glass">
+            <div class="modal-header">
+                <div>
+                    <h2 class="modal-title" id="modalTitle">🎵 Select Tracks</h2>
+                    <div id="modalSubtitle" class="modal-subtitle">Loading…</div>
+                </div>
+                <button class="btn btn-icon" id="modalCloseX"><i class="ph ph-x" style="font-size:1.3rem"></i></button>
+            </div>
+
+            <div class="modal-body">
+                <!-- Loading Skeleton -->
+                <div id="modalLoading" class="modal-loading">
+                    <i class="ph ph-spinner-gap"></i>
+                    <span id="modalLoadingText">Fetching…</span>
+                </div>
+
+                <!-- Loaded Content -->
+                <div id="modalContent" class="modal-content hidden" style="display:flex; flex-direction:column; height: 100%;">
+                    <div class="modal-toolbar">
+                        <span id="modalSelectionCount" style="font-weight:500; color:var(--text-muted)">0 selected</span>
+                        <div style="display:flex; gap:12px;">
+                            <button id="modalDeselectAll" class="btn btn-secondary" style="padding: 4px 12px; font-size:0.85rem">Deselect All</button>
+                            <button id="modalSelectAll" class="btn btn-secondary" style="padding: 4px 12px; font-size:0.85rem">Select All</button>
+                        </div>
+                    </div>
+
+                    <div id="playlistTracks" class="playlist-tracks">
+                        <!-- Tracks injected here -->
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <!-- Format picker row -->
+                <div class="format-picker-row hidden" id="formatPickerRow">
+                    <div class="type-toggle" id="typeToggle">
+                        <button class="type-btn active" id="typeAudio" data-type="audio">
+                            <i class="ph ph-music-note"></i> Audio
+                        </button>
+                        <button class="type-btn" id="typeVideo" data-type="video">
+                            <i class="ph ph-video"></i> Video
+                        </button>
+                    </div>
+
+                    <!-- Audio bitrate -->
+                    <div class="quality-select" id="audioQualityWrap">
+                        <i class="ph ph-sliders-horizontal"></i>
+                        <select id="qualityInput">
+                            <option value="96">96 kbps — Low</option>
+                            <option value="128">128 kbps — Standard</option>
+                            <option value="192" selected>192 kbps — High</option>
+                            <option value="256">256 kbps — Very High</option>
+                            <option value="320">320 kbps — Maximum</option>
+                        </select>
+                    </div>
+
+                    <!-- Video quality -->
+                    <div class="quality-select hidden" id="videoQualityWrap">
+                        <i class="ph ph-film-strip"></i>
+                        <select id="videoQualityInput">
+                            <option value="bestvideo+bestaudio">Best available</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="modal-footer-buttons">
+                    <button id="modalCancel" class="btn btn-secondary">Cancel</button>
+                    <button id="modalConfirm" class="btn btn-primary" disabled>
+                        <i class="ph ph-download-simple"></i> Download
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="state.js"></script>
+    <script src="queue.js"></script>
+    <script src="modal.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
